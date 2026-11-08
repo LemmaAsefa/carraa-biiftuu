@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="om">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Draw Wheel - Carraa Biiftuu</title>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: radial-gradient(circle at center, #0a3d24 0%, #03140b 100%); color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 18px 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    h1 { color: #d4af37; text-transform: uppercase; letter-spacing: 2px; margin: 6px 0 4px; font-size: 22px; text-align: center; text-shadow: 0 0 15px rgba(212, 175, 55, 0.6); }
+    .sub-title { color: #a0b8ac; font-size: 13px; margin-bottom: 14px; text-align: center; }
+    #lockScreen { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 440px; margin-top: 20px; padding: 28px 20px; background: rgba(10, 35, 22, 0.92); border: 2px dashed #d4af37; border-radius: 20px; }
+    #pinModalOverlay, .winner-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 999; }
+    .pin-modal-card, .winner-card { background: #0d2417; border: 2.5px solid #ffd700; padding: 26px 20px; border-radius: 18px; text-align: center; width: 90%; max-width: 360px; box-shadow: 0 0 45px rgba(212,175,55,0.6); }
+    .pin-modal-card input { width: 100%; padding: 12px; margin: 14px 0; border: 1px solid #d4af37; border-radius: 8px; background: #06150c; color: #fff; font-size: 20px; text-align: center; letter-spacing: 5px; }
+    #activeDrawStage { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 500px; }
+    .current-round-banner { background: linear-gradient(135deg, #ffd700, #aa771c); color: #000; font-weight: 900; padding: 9px 20px; border-radius: 30px; font-size: 14px; margin-bottom: 10px; box-shadow: 0 0 20px rgba(212, 175, 55, 0.6); }
+    .led-drum { background: #020a05; border: 2px solid #ffd700; color: #2ed573; font-family: monospace; font-size: 26px; font-weight: 900; padding: 6px 24px; border-radius: 12px; margin-bottom: 14px; letter-spacing: 3px; box-shadow: inset 0 0 12px rgba(46,213,115,0.4); }
+    .wheel-stage { position: relative; width: 330px; height: 330px; display: flex; align-items: center; justify-content: center; }
+    canvas { border-radius: 50%; box-shadow: 0 0 35px rgba(212, 175, 55, 0.45); border: 5px solid #d4af37; }
+    .pointer { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); border-left: 16px solid transparent; border-right: 16px solid transparent; border-top: 30px solid #ffd700; z-index: 10; filter: drop-shadow(0 3px 6px #000); }
+    .center-hub { position: absolute; width: 56px; height: 56px; background: radial-gradient(circle, #ffd700, #aa771c); border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #000; font-size: 18px; z-index: 5; }
+    .btn-spin { background: linear-gradient(135deg, #ffd700, #d4af37, #0a3d24); color: #fff; border: none; padding: 14px 36px; font-size: 15.5px; font-weight: 900; border-radius: 40px; cursor: pointer; margin-top: 18px; box-shadow: 0 6px 25px rgba(212, 175, 55, 0.5); text-transform: uppercase; }
+    .btn-outline { background: transparent; border: 1.5px solid #d4af37; color: #d4af37; padding: 8px 18px; border-radius: 20px; font-weight: bold; font-size: 12.5px; cursor: pointer; margin-top: 12px; text-decoration: none; }
+    .winners-board { margin-top: 20px; width: 100%; background: rgba(10, 35, 22, 0.85); border: 1px solid #d4af37; border-radius: 14px; padding: 14px; }
+    .winner-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed rgba(212,175,55,0.3); font-size: 13.5px; }
+    .winning-number { font-size: 46px; font-weight: 900; color: #fff; text-shadow: 0 0 20px #ffd700; margin: 12px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>🎡 Carraa Biiftuu - Live Draw</h1>
+  <div class="sub-title">Sirna Carraa Baasuu Qulqulluu fi Kallattii (100% Fair Random Engine)</div>
+
+  <div id="lockScreen">
+    <div style="font-size:48px; margin-bottom:10px;">🔒</div>
+    <h2 style="color:#d4af37; margin-bottom:10px;">Geengoon Carraa Cufaadha!</h2>
+    <p style="color:#a0b8ac; font-size:13.5px; line-height:1.6;">Carraan kun akkuma gurgurtaan 1,000/1,000 guuteen Admin kallattiin bana. Yeroo carraan baafamu kallattiin fuula kanarraa hordofaa!</p>
+    <button class="btn-spin" style="margin-top:16px; padding:10px 25px; font-size:13px;" onclick="checkDrawStatus()">🔄 HAAROMSI (REFRESH)</button>
+    <button class="btn-outline" onclick="openPinModal()">🔐 Seensa Admin</button>
+    <a href="index.html" style="color:#d4af37; margin-top:16px; text-decoration:none; font-weight:bold; font-size:13px;">← Gara Fuula Duraatti</a>
+  </div>
+
+  <div id="pinModalOverlay">
+    <div class="pin-modal-card">
+      <h3 style="color:#ffd700; margin-top:0;">Admin PIN Galchaa</h3>
+      <input type="password" id="adminSecretPin" placeholder="••••" maxlength="10">
+      <div style="display:flex; gap:10px;">
+        <button class="btn-outline" style="flex:1;" onclick="closePinModal()">Dhiisi</button>
+        <button class="btn-spin" style="flex:1; margin-top:12px; padding:8px;" onclick="submitAdminUnlock()">Bani 🟢</button>
+      </div>
+      <div id="pinErr" style="color:#ff4d4f; font-size:12px; margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <div id="activeDrawStage">
+    <div class="current-round-banner" id="roundBannerTxt">🥉 Marsaa 1: Badhaasa 3ffaa (Smart Phone)</div>
+    <!-- LIVE DIGITAL LED DRUM -->
+    <div class="led-drum" id="ledDrumDisplay">#---</div>
+
+    <div class="wheel-stage">
+      <div class="pointer"></div>
+      <canvas id="wheelCanvas" width="330" height="330"></canvas>
+      <div class="center-hub">★</div>
+    </div>
+
+    <button id="spinBtn" class="btn-spin" onclick="spinWheel()">NAANNESSI (SPIN) 🔥</button>
+    <button class="btn-outline" onclick="lockAgain()">🔒 Cufi (Lock Draw)</button>
+
+    <div class="winners-board">
+      <h3 style="margin:0 0 10px; color:#ffd700; font-size:15px; text-align:center;">🏆 Tarree Mo'attoota Marsaa Kanaa</h3>
+      <div class="winner-row"><span>🥉 Badhaasa 3ffaa (Smart Phone):</span> <b id="w3rd" style="color:#ffd700;">---</b></div>
+      <div class="winner-row"><span>🥈 Badhaasa 2ffaa (Mootarsayikilii):</span> <b id="w2nd" style="color:#ffd700;">---</b></div>
+      <div class="winner-row"><span>🥇 Badhaasa 1ffaa (Konkolaataa):</span> <b id="w1st" style="color:#ffd700;">---</b></div>
+    </div>
+    <a href="index.html" style="color:#d4af37; margin-top:16px; text-decoration:none; font-weight:bold; font-size:13px;">← Gara Fuula Duraatti</a>
+  </div>
+
+  <div class="winner-overlay" id="winnerModal">
+    <div class="winner-card">
+      <h2 id="modalPrizeTitle" style="color:#ffd700; font-size:20px; margin:0;">BAGA GAMMADDAN! 🎉</h2>
+      <p style="color:#a0b8ac; font-size:13px; margin-top:8px;">Lakkoofsi Carraa Mo'ate:</p>
+      <div class="winning-number" id="winnerTicketTxt">#---</div>
+      <p style="color:#2ed573; font-weight:bold; font-size:13px;">✓ Carraan kun geengoo keessaa haqameera!</p>
+      <button class="btn-spin" id="modalNextBtn" style="margin-top:14px; padding:10px 25px; font-size:14px;" onclick="advanceRound()">MARSAA ITTI AANUU →</button>
+    </div>
+  </div>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxrJMFYrybfQVMW8cWTN7r9uY8NtAKxsRg0BMYZPjwYGd0syqijTVvrG8xHB643oDz6/exec";
+    let segments = [], currentRound = 1, currentWinnerNumber = "", currentAngle = 0, isSpinning = false, lastTickIdx = -1;
+    const winners = { third: "---", second: "---", first: "---" };
+    const ROUND_NAMES = {
+      1: "🥉 Marsaa 1: Badhaasa 3ffaa (Smart Phone)",
+      2: "🥈 Marsaa 2: Badhaasa 2ffaa (Mootarsayikilii)",
+      3: "🥇 Marsaa 3: Badhaasa 1ffaa (Konkolaataa Guddaa)"
+    };
+
+    const canvas = document.getElementById('wheelCanvas'), ctx = canvas.getContext('2d');
+    const colors = ["#0a3d24", "#d4af37", "#0d4d2e", "#c5a028", "#125a37", "#b89222", "#08331e", "#e6c24d"];
+
+    // Web Audio Mechanical Tick & Winner Fanfare
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playTick() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+      osc.type = 'triangle'; osc.frequency.setValueAtTime(620, audioCtx.currentTime);
+      g.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.035);
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.035);
+    }
+    function playWinFanfare() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+        osc.type = 'sine'; osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.12);
+        g.gain.setValueAtTime(0.2, audioCtx.currentTime + idx * 0.12);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.12 + 0.4);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + idx * 0.12); osc.stop(audioCtx.currentTime + idx * 0.12 + 0.4);
+      });
+    }
+
+    function openPinModal() { document.getElementById('pinModalOverlay').style.display = 'flex'; }
+    function closePinModal() { document.getElementById('pinModalOverlay').style.display = 'none'; }
+
+    async function submitAdminUnlock() {
+      const pin = document.getElementById('adminSecretPin').value.trim();
+      if (!pin) return;
+      try {
+        const res = await fetch(WEB_APP_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "adminToggleDraw", pin: pin, status: "UNLOCKED" }) });
+        const d = await res.json();
+        if (d.ok) { closePinModal(); checkDrawStatus(); }
+        else document.getElementById('pinErr').innerText = d.error || "PIN dogoggora!";
+      } catch(e) { document.getElementById('pinErr').innerText = "Network error."; }
+    }
+
+    async function lockAgain() {
+      const pin = prompt("Admin PIN galchaa cufuuf:");
+      if (!pin) return;
+      try {
+        const res = await fetch(WEB_APP_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "adminToggleDraw", pin: pin.trim(), status: "LOCKED" }) });
+        const d = await res.json();
+        if (d.ok) checkDrawStatus();
+      } catch(e) {}
+    }
+
+    async function checkDrawStatus() {
+      try {
+        const res = await fetch(`${WEB_APP_URL}?action=getDrawData`);
+        const data = await res.json();
+        if (data.ok && data.status === "UNLOCKED") {
+          document.getElementById('lockScreen').style.display = "none";
+          document.getElementById('activeDrawStage').style.display = "flex";
+          segments = (data.approvedTickets && data.approvedTickets.length > 0) ? data.approvedTickets.map(n => "#" + n) : ["#10", "#18", "#77", "#105", "#240", "#512", "#777"];
+          drawWheel();
+        } else {
+          document.getElementById('lockScreen').style.display = "flex";
+          document.getElementById('activeDrawStage').style.display = "none";
+        }
+      } catch(e) { document.getElementById('lockScreen').style.display = "flex"; }
+    }
+
+    function getCurrentPointerSegment() {
+      const n = segments.length;
+      if (n === 0) return "---";
+      const arc = (2 * Math.PI) / n;
+      const norm = (1.5 * Math.PI - (currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      const idx = Math.floor(norm / arc);
+      if (idx !== lastTickIdx && isSpinning) { lastTickIdx = idx; playTick(); }
+      return segments[idx] || "---";
+    }
+
+    function drawWheel() {
+      const n = segments.length;
+      if (n === 0) return;
+      const arc = (2 * Math.PI) / n, r = canvas.width / 2;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save(); ctx.translate(r, r); ctx.rotate(currentAngle);
+      for (let i = 0; i < n; i++) {
+        const a = i * arc;
+        ctx.beginPath(); ctx.fillStyle = colors[i % colors.length];
+        ctx.moveTo(0, 0); ctx.arc(0, 0, r, a, a + arc); ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.22)"; ctx.lineWidth = 1; ctx.stroke();
+        if (n <= 60) {
+          ctx.save(); ctx.rotate(a + arc / 2); ctx.textAlign = "right";
+          ctx.fillStyle = (i % 2 === 0) ? "#ffd700" : "#ffffff";
+          ctx.font = "bold 13px sans-serif"; ctx.fillText(segments[i], r - 16, 4); ctx.restore();
+        }
+      }
+      ctx.restore();
+      document.getElementById('ledDrumDisplay').innerText = getCurrentPointerSegment();
+    }
+
+    function spinWheel() {
+      if (isSpinning || segments.length === 0) return;
+      isSpinning = true;
+      document.getElementById('spinBtn').disabled = true;
+      const spinAngle = (Math.random() * 360 + 2520) * (Math.PI / 180);
+      const duration = 6800, start = performance.now();
+
+      function animate(time) {
+        const progress = Math.min((time - start) / duration, 1);
+        currentAngle = (1 - Math.pow(1 - progress, 3.2)) * spinAngle;
+        drawWheel();
+        if (progress < 1) requestAnimationFrame(animate);
+        else { isSpinning = false; document.getElementById('spinBtn').disabled = false; announceWinner(); }
+      }
+      requestAnimationFrame(animate);
+    }
+
+    function announceWinner() {
+      playWinFanfare();
+      currentWinnerNumber = getCurrentPointerSegment();
+      document.getElementById('winnerTicketTxt').innerText = currentWinnerNumber;
+      document.getElementById('modalPrizeTitle').innerText = ROUND_NAMES[currentRound];
+      document.getElementById('winnerModal').style.display = "flex";
+      confetti({ particleCount: 220, spread: 100, origin: { y: 0.5 } });
+
+      if (currentRound === 1) { winners.third = currentWinnerNumber; document.getElementById('w3rd').innerText = currentWinnerNumber; }
+      else if (currentRound === 2) { winners.second = currentWinnerNumber; document.getElementById('w2nd').innerText = currentWinnerNumber; }
+      else if (currentRound === 3) {
+        winners.first = currentWinnerNumber; document.getElementById('w1st').innerText = currentWinnerNumber;
+        document.getElementById('modalNextBtn').innerText = "CARRAAN XUMURAMEERA! 🏆";
+      }
+      segments = segments.filter(t => t !== currentWinnerNumber);
+    }
+
+    function advanceRound() {
+      document.getElementById('winnerModal').style.display = "none";
+      if (currentRound < 3) {
+        currentRound++;
+        document.getElementById('roundBannerTxt').innerText = ROUND_NAMES[currentRound];
+        currentAngle = 0; drawWheel();
+      } else {
+        alert(`BAGA GAMMADDAN! MO'ATTOOTA MARSAA KANAA:\n🥇 1ffaa: ${winners.first}\n🥈 2ffaa: ${winners.second}\n🥉 3ffaa: ${winners.third}`);
+        document.getElementById('spinBtn').disabled = true;
+      }
+    }
+    checkDrawStatus();
+  </script>
+</body>
+</html>

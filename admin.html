@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="om">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Carraa Biiftuu</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: #07140d; margin: 0; padding: 18px 12px; color: #f0f7f2; }
+    .container { max-width: 1260px; margin: auto; }
+    #loginOverlay, .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    .modal-overlay { display: none; z-index: 1000; padding: 15px; }
+    .login-box, .modal-card { background: #0d2417; border: 2px solid #d4af37; padding: 26px; border-radius: 16px; width: 100%; max-width: 440px; color: #fff; box-shadow: 0 15px 40px rgba(0,0,0,0.7); }
+    .login-box input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #d4af37; background: #05120a; color: #fff; border-radius: 8px; font-size: 20px; text-align: center; letter-spacing: 5px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; background: #0d2417; padding: 14px 18px; border-radius: 14px; border: 1px solid rgba(212,175,55,0.4); }
+    .header h1 { margin: 0; color: #ffd700; font-size: 20px; }
+    .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .panel-card { background: #0d2417; border: 1.5px solid rgba(212,175,55,0.5); border-radius: 14px; padding: 16px 18px; }
+    .panel-card h3 { margin: 0 0 10px; color: #ffd700; font-size: 15.5px; }
+    .finance-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); font-size: 13.5px; }
+    .finance-row.total-profit { border-top: 2px solid #2ed573; border-bottom: none; font-size: 15px; font-weight: 900; color: #2ed573; padding-top: 10px; }
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; font-size: 13.5px; }
+    .switch-btn { padding: 6px 14px; border-radius: 20px; border: none; font-weight: bold; cursor: pointer; font-size: 12px; }
+    .switch-on { background: #2ed573; color: #000; }
+    .switch-off { background: #333; color: #aaa; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat-card { background: #0d2417; padding: 16px; border-radius: 12px; text-align: center; border-left: 5px solid #d4af37; border-top: 1px solid rgba(212,175,55,0.2); }
+    .stat-num { font-size: 22px; font-weight: 900; margin-top: 4px; }
+    .controls { display: flex; justify-content: space-between; margin-bottom: 15px; gap: 10px; flex-wrap: wrap; }
+    .controls input, .controls select, .modal-card input, .modal-card textarea { padding: 10px 14px; border: 1px solid #d4af37; background: #05120a; color: #fff; border-radius: 8px; font-size: 13.5px; }
+    .search-input { flex-grow: 1; max-width: 420px; }
+    .btn { padding: 9px 14px; border-radius: 8px; border: none; font-weight: 800; cursor: pointer; font-size: 12.5px; text-decoration: none; display: inline-block; }
+    .table-container { background: #0d2417; border-radius: 14px; border: 1px solid rgba(212,175,55,0.35); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 980px; text-align: left; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 13px; }
+    th { background: #06150c; color: #ffd700; text-transform: uppercase; font-size: 11.5px; letter-spacing: 1px; }
+    .badge { padding: 4px 9px; border-radius: 6px; font-size: 11.5px; font-weight: 800; }
+    .badge.Pending { background: rgba(255,152,0,0.2); color: #ffb74d; }
+    .badge.Approved { background: rgba(46,213,115,0.2); color: #2ed573; }
+    .badge.Rejected { background: rgba(231,76,60,0.2); color: #ff6b6b; }
+    .btn-action { padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 11.5px; font-weight: 800; margin: 2px; }
+    .btn-app { background: #2ed573; color: #000; }
+    .btn-rej { background: #e74c3c; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <div id="loginOverlay">
+    <div class="login-box" style="text-align:center;">
+      <h3 style="color:#ffd700; margin-top:0;">🔐 Carraa Biiftuu — Admin</h3>
+      <p style="color:#a0b8ac; font-size:13px;">Maaloo Admin PIN galchaa:</p>
+      <input type="password" id="adminPinInput" placeholder="••••" maxlength="10">
+      <button class="btn" style="width:100%; background:#d4af37; color:#000; padding:12px;" onclick="loginAdmin()">SEENSA ➔</button>
+      <div id="loginErr" style="color:#ff4d4f; font-size:13px; margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <div class="container" id="mainDashboard" style="display: none;">
+    <div class="header">
+      <h1>🌟 Carraa Biiftuu — Executive Admin Hub</h1>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <a href="scanner.html" class="btn" style="background:#ffd700; color:#000;">📷 Scan QR</a>
+        <button class="btn" style="background:#1565c0; color:white;" onclick="openMediaModal()">🎬 Media Hub</button>
+        <button class="btn" style="background:#2ed573; color:#000;" onclick="openCashModal()">💵 Galmee Qaamaa</button>
+        <button class="btn" style="background:#d4af37; color:#000;" onclick="openBroadcastModal()">📢 Broadcast</button>
+        <button class="btn" style="background:#444; color:white;" onclick="exportToCSV()">📥 CSV</button>
+        <button class="btn" style="background:#228b52; color:white;" onclick="fetchAdminData()">🔄 Refresh</button>
+        <button class="btn" style="background:#c62828; color:white;" onclick="logoutAdmin()">🚪 Exit</button>
+      </div>
+    </div>
+
+    <div class="controls-grid">
+      <div class="panel-card">
+        <h3>🎡 Too'annoo Live Draw</h3>
+        <p style="font-size:13px; color:#a0b8ac; margin-bottom:14px;">Haala Ammaa: <b id="drawStatusBadge" style="color:#ff6b6b;">Cufameera (Locked) 🔴</b></p>
+        <div style="display:flex; gap:10px;">
+          <button id="toggleDrawBtn" class="btn" style="background:#2ed573; color:#000; flex:1;" onclick="toggleLiveDraw()">BANI (Unlock)</button>
+          <a href="draw.html" target="_blank" class="btn" style="background:#d4af37; color:#000; text-align:center; flex:1;">Fuula Draw ↗</a>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h3>📊 Shallaggii Taaksii & Bu'aa Qulqulluu</h3>
+        <div class="finance-row"><span>Gurgurtaa Waliigalaa (Gross):</span> <b id="fGross">0 ETB</b></div>
+        <div class="finance-row"><span>Taaksii (<span id="fTaxPct">15</span>%):</span> <span style="color:#ff6b6b;">- <b id="fTaxAmt">0</b> ETB</span></div>
+        <div class="finance-row"><span>Arjoomaa (<span id="fCharityPct">10</span>%):</span> <span style="color:#ffb74d;">- <b id="fCharityAmt">0</b> ETB</span></div>
+        <div class="finance-row total-profit"><span>Bu'aa Qulqulluu (Net Profit):</span> <b id="fNetProfit">0 ETB</b></div>
+        <div class="toggle-row"><span>🎰 Scratch & Win:</span><button id="toggleScratchBtn" class="switch-btn switch-off" onclick="toggleFeature('scratch')">OFF</button></div>
+        <div class="toggle-row"><span>🔗 Referral Link:</span><button id="toggleRefBtn" class="switch-btn switch-off" onclick="toggleFeature('referral')">OFF</button></div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div>Mallaqa Waliigalaa</div><div class="stat-num" id="statRevenue" style="color:#2ed573;">0 ETB</div></div>
+      <div class="stat-card"><div>Carraa Gurgurame</div><div class="stat-num" id="statTicketsSold" style="color:#ffd700;">0 / 1000</div></div>
+      <div class="stat-card"><div>Pending</div><div class="stat-num" id="statPending" style="color:#ffb74d;">0</div></div>
+      <div class="stat-card"><div>Approved</div><div class="stat-num" id="statApproved" style="color:#2ed573;">0</div></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" class="search-input" id="searchInput" placeholder="🔍 Maqaa, Bilbila, Order ID ykn TXN barbaadi..." onkeyup="renderTable()">
+      <select id="statusFilter" onchange="renderTable()">
+        <option value="ALL">Status Hundumaa</option>
+        <option value="Pending">Pending Qofa</option>
+        <option value="Approved">Approved Qofa</option>
+        <option value="Rejected">Rejected Qofa</option>
+      </select>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr><th>Order ID</th><th>Guyyaa</th><th>Maqaa & Bilbila</th><th>Carraa</th><th>Mallaqa</th><th>Mala & TXN</th><th>Nagahee (Proof)</th><th>Status</th><th>Action & Notify</th></tr>
+        </thead>
+        <tbody id="ordersTableBody"><tr><td colspan="9" style="text-align:center;">Daataa fe'aa jira...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Receipt Lightbox Modal (Fixes Base64 New Tab Issue!) -->
+  <div class="modal-overlay" id="receiptModal" onclick="this.style.display='none'">
+    <div class="modal-card" style="max-width:520px; text-align:center;" onclick="event.stopPropagation()">
+      <h3 style="color:#ffd700; margin-top:0;">🖼️ Ragaa Nagahee Maamilaa</h3>
+      <div id="receiptMetaInfo" style="font-size:13px; color:#a0b8ac; margin-bottom:10px;"></div>
+      <img id="receiptModalImg" src="" style="max-width:100%; max-height:60vh; border-radius:10px; border:1.5px solid #d4af37;">
+      <button class="btn" style="width:100%; background:#d4af37; color:#000; margin-top:14px;" onclick="document.getElementById('receiptModal').style.display='none'">CUFI (CLOSE) ✕</button>
+    </div>
+  </div>
+
+  <!-- Cash Modal -->
+  <div class="modal-overlay" id="cashModal">
+    <div class="modal-card">
+      <h3 style="color:#ffd700; margin-top:0;">💵 Galmee Carraa Qaamaa (Cash)</h3>
+      <label>Maqaa Maamilaa:</label><input type="text" id="cashName" style="width:100%; margin-top:5px;" placeholder="Fkn: Caalaa Tolasaa">
+      <label style="margin-top:10px; display:block;">Lakk. Bilbilaa:</label><input type="text" id="cashPhone" style="width:100%; margin-top:5px;" placeholder="09XXXXXXXX">
+      <label style="margin-top:10px; display:block;">Lakk. Carraa (Fkn: 5, 23):</label><input type="text" id="cashTickets" style="width:100%; margin-top:5px;" placeholder="Fkn: 5, 23">
+      <div style="margin-top:18px; display:flex; gap:10px;">
+        <button class="btn" style="background:#444; color:#fff; flex:1;" onclick="document.getElementById('cashModal').style.display='none'">Dhiisi</button>
+        <button class="btn" style="background:#2ed573; color:#000; flex:2;" onclick="submitCashBooking()">GALMEESSI ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Broadcast Modal -->
+  <div class="modal-overlay" id="broadcastModal">
+    <div class="modal-card">
+      <h3 style="color:#ffd700; margin-top:0;">📢 Ergaa Xumura Carraa Hundaaf Ergi</h3>
+      <label>🥇 1ffaa (Konkolaataa):</label><input type="number" id="bcW1st" style="width:100%; margin-top:5px;">
+      <label style="margin-top:10px; display:block;">🥈 2ffaa (Mootarsayikilii):</label><input type="number" id="bcW2nd" style="width:100%; margin-top:5px;">
+      <label style="margin-top:10px; display:block;">🥉 3ffaa (Smart Phone):</label><input type="number" id="bcW3rd" style="width:100%; margin-top:5px;">
+      <div style="margin-top:18px; display:flex; gap:10px;">
+        <button class="btn" style="background:#444; color:#fff; flex:1;" onclick="document.getElementById('broadcastModal').style.display='none'">Dhiisi</button>
+        <button class="btn" style="background:#ffd700; color:#000; flex:2;" onclick="submitBroadcast()">HUNDAAF ERGI 📢</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Media Modal -->
+  <div class="modal-overlay" id="mediaModal">
+    <div class="modal-card">
+      <h3 style="color:#ffd700; margin-top:0;">🎬 Media Hub (Viidiyoo & Suuraa)</h3>
+      <label>Liinkii Viidiyoolee YouTube:</label><textarea id="mediaVideosInput" rows="4" style="width:100%; margin-top:5px;"></textarea>
+      <label style="margin-top:10px; display:block;">Liinkii Suuraalee:</label><textarea id="mediaImagesInput" rows="4" style="width:100%; margin-top:5px;"></textarea>
+      <div style="margin-top:18px; display:flex; gap:10px;">
+        <button class="btn" style="background:#444; color:#fff; flex:1;" onclick="document.getElementById('mediaModal').style.display='none'">Dhiisi</button>
+        <button class="btn" id="mediaSubmitBtn" style="background:#1565c0; color:#fff; flex:2;" onclick="saveMediaHub()">OL-KAA'I 💾</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxrJMFYrybfQVMW8cWTN7r9uY8NtAKxsRg0BMYZPjwYGd0syqijTVvrG8xHB643oDz6/exec";
+    let CURRENT_PIN = sessionStorage.getItem("carraa_admin_pin") || "";
+    let ALL_ORDERS = [];
+    let SETTINGS = { drawStatus: "LOCKED", scratchEnabled: false, referralEnabled: false, taxRate: 15, charityRate: 10 };
+    let CURRENT_MEDIA = { videos: [], images: [] };
+
+    if (CURRENT_PIN) {
+      document.getElementById('loginOverlay').style.display = "none";
+      document.getElementById('mainDashboard').style.display = "block";
+      fetchAdminData();
+    }
+
+    function loginAdmin() {
+      const pin = document.getElementById('adminPinInput').value.trim();
+      if (!pin) return;
+      CURRENT_PIN = pin;
+      sessionStorage.setItem("carraa_admin_pin", pin);
+      fetchAdminData(true);
+    }
+    function logoutAdmin() { sessionStorage.removeItem("carraa_admin_pin"); location.reload(); }
+    function openCashModal() { document.getElementById('cashModal').style.display = 'flex'; }
+    function openBroadcastModal() { document.getElementById('broadcastModal').style.display = 'flex'; }
+    function openMediaModal() {
+      document.getElementById('mediaVideosInput').value = (CURRENT_MEDIA.videos || []).join('\n');
+      document.getElementById('mediaImagesInput').value = (CURRENT_MEDIA.images || []).join('\n');
+      document.getElementById('mediaModal').style.display = 'flex';
+    }
+
+    function previewReceipt(idx) {
+      const o = ALL_ORDERS[idx];
+      if (!o || !o.screenshot || o.screenshot === "N/A") return;
+      document.getElementById('receiptMetaInfo').innerHTML = `👤 <b>${o.name}</b> | 💳 <b>${o.method}:</b> <code>${o.txn}</code> | 💰 <b>${Number(o.total).toLocaleString()} ETB</b>`;
+      document.getElementById('receiptModalImg').src = o.screenshot;
+      document.getElementById('receiptModal').style.display = 'flex';
+    }
+
+    async function saveMediaHub() {
+      const vText = document.getElementById('mediaVideosInput').value.trim();
+      const iText = document.getElementById('mediaImagesInput').value.trim();
+      const videos = vText ? vText.split('\n').map(s => s.trim()).filter(s => s.length > 5).slice(0, 10) : [];
+      const images = iText ? iText.split('\n').map(s => s.trim()).filter(s => s.length > 5).slice(0, 20) : [];
+      try {
+        const res = await fetch(WEB_APP_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "adminSaveMedia", pin: CURRENT_PIN, media: { videos, images } }) });
+        const d = await res.json();
+        if (d.ok) { alert("Media Hub Saved! ✅"); document.getElementById('mediaModal').style.display = 'none'; fetchAdminData(); }
+      } catch(e) {}
+    }
+
+    async function fetchAdminData(isFirstLogin = false) {
+      try {
+        const res = await fetch(`${WEB_APP_URL}?action=adminData&pin=${encodeURIComponent(CURRENT_PIN)}`);
+        const data = await res.json();
+        if (data.ok) {
+          document.getElementById('loginOverlay').style.display = "none";
+          document.getElementById('mainDashboard').style.display = "block";
+          ALL_ORDERS = data.orders || [];
+          if (data.media) CURRENT_MEDIA = data.media;
+          const gross = Number(data.stats.revenue) || 0;
+          document.getElementById('statRevenue').innerText = gross.toLocaleString() + " ETB";
+          document.getElementById('statTicketsSold').innerText = data.stats.ticketsSold + " / 1000";
+          document.getElementById('statPending').innerText = data.stats.pending;
+          document.getElementById('statApproved').innerText = data.stats.approved;
+          if (data.settings) SETTINGS = data.settings;
+          const taxAmt = Math.round(gross * (SETTINGS.taxRate / 100));
+          const charityAmt = Math.round(gross * (SETTINGS.charityRate / 100));
+          document.getElementById('fGross').innerText = gross.toLocaleString() + " ETB";
+          document.getElementById('fTaxAmt').innerText = taxAmt.toLocaleString();
+          document.getElementById('fCharityAmt').innerText = charityAmt.toLocaleString();
+          document.getElementById('fNetProfit').innerText = (gross - taxAmt - charityAmt).toLocaleString() + " ETB";
+          updateUIFromSettings();
+          renderTable();
+        } else {
+          if (isFirstLogin) document.getElementById('loginErr').innerText = data.error || "PIN dogoggora!";
+        }
+      } catch (e) {}
+    }
+
+    function updateUIFromSettings() {
+      const badge = document.getElementById('drawStatusBadge'), drawBtn = document.getElementById('toggleDrawBtn');
+      if (SETTINGS.drawStatus === "UNLOCKED") {
+        badge.innerText = "Banameera (Open) 🟢"; badge.style.color = "#2ed573";
+        drawBtn.innerText = "CUFI (Lock)"; drawBtn.style.background = "#e74c3c"; drawBtn.style.color = "#fff";
+      } else {
+        badge.innerText = "Cufameera (Locked) 🔴"; badge.style.color = "#ff6b6b";
+        drawBtn.innerText = "BANI (Unlock)"; drawBtn.style.background = "#2ed573"; drawBtn.style.color = "#000";
+      }
+      const scrBtn = document.getElementById('toggleScratchBtn');
+      scrBtn.className = "switch-btn " + (SETTINGS.scratchEnabled ? "switch-on" : "switch-off");
+      scrBtn.innerText = SETTINGS.scratchEnabled ? "ON 🟢" : "OFF ⚪";
+      const refBtn = document.getElementById('toggleRefBtn');
+      refBtn.className = "switch-btn " + (SETTINGS.referralEnabled ? "switch-on" : "switch-off");
+      refBtn.innerText = SETTINGS.referralEnabled ? "ON 🟢" : "OFF ⚪";
+    }
+
+    async function toggleFeature(feature) {
+      let payload = { action: "adminUpdateSettings", pin: CURRENT_PIN };
+      if (feature === 'scratch') payload.scratchEnabled = !SETTINGS.scratchEnabled;
+      if (feature === 'referral') payload.referralEnabled = !SETTINGS.referralEnabled;
+      await fetch(WEB_APP_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload) });
+      fetchAdminData();
+    }
+
+    async function toggleLiveDraw() {
+      const newStatus = SETTINGS.drawStatus === "UNLOCKED" ? "LOCKED" : "UNLOCKED";
+      await fetch(WEB_APP_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "adminToggleDraw", pin: CURRENT_PIN, status: newStatus }) });
+      fetchAdminData();
+    }
+
+    function renderTable() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const filter = document.getElementById('statusFilter').value;
+      const tbody = document.getElementById('ordersTableBody');
+      tbody.innerHTML = "";
+      const filtered = ALL_ORDERS.map((o, idx) => ({...o, _idx: idx})).filter(o => (o.name.toLowerCase().includes(q) || o.phone.toLowerCase().includes(q) || o.txn.toLowerCase().includes(q) || o.id.toLowerCase().includes(q)) && (filter === "ALL" || o.status === filter));
+      if (filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#888;">Ajajni hin argamne.</td></tr>`; return; }
+
+      filtered.forEach(o => {
+        const smsMsg = encodeURIComponent(`Baga Gammaddan ${o.name}! Tikkeetiin Carraa Biiftuu keessan (#${o.tickets}) Order ID: ${o.id} mirkanaa'eera!`);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b><code style="color:#ffd700;">${o.id}</code></b></td>
+          <td style="color:#a0b8ac; font-size:12px;">${o.date}</td>
+          <td><b>${o.name}</b><br><a href="tel:${o.phone}" style="color:#2ed573; text-decoration:none;">📞 ${o.phone}</a></td>
+          <td><b style="color:#ffd700;">#${o.tickets}</b> (${o.qty})</td>
+          <td><b>${Number(o.total).toLocaleString()} ETB</b></td>
+          <td><b>${o.method}</b><br><code>${o.txn}</code></td>
+          <td>${o.screenshot !== "N/A" ? `<button class="btn-action" style="background:#1565c0; color:#fff;" onclick="previewReceipt(${o._idx})">🖼️ Nagahee Ilaali</button>` : `<span style="color:#888;">Cash</span>`}</td>
+          <td><span class="badge ${o.status}">${o.status}</span></td>
+          <td>
+            ${o.status === "Pending" ? `
+              <button class="btn-action btn-app" onclick="updateOrderStatus('${o.id}', 'Approved')">✓ Approve</button>
+              <button class="btn-action btn-rej" onclick="updateOrderStatus('${o.id}', 'Rejected')">✕ Reject</button>
+            ` : `<a href="sms:${o.phone}?body=${smsMsg}" class="btn-action" style="background:#d4af37; color:#000; text-decoration:none;">💬 SMS Ergi</a>`}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function updateOrderStatus(orderId, newStatus) {
+      await fetch(WEB_APP_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "adminUpdate", pin: CURRENT_PIN, orderId, status: newStatus }) });
+      fetchAdminData();
+    }
+
+    async function submitCashBooking() {
+      const name = document.getElementById('cashName').value.trim(), phone = document.getElementById('cashPhone').value.trim();
+      const tickets = document.getElementById('cashTickets').value.split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+      if (tickets.length === 0) return alert("Carraa galchaa!");
+      const res = await fetch(WEB_APP_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "adminManualCashBooking", pin: CURRENT_PIN, name, phone, tickets }) });
+      const d = await res.json();
+      if (d.ok) { alert("Galmaa'eera! ✅"); document.getElementById('cashModal').style.display = 'none'; fetchAdminData(); }
+      else alert(d.error);
+    }
+
+    async function submitBroadcast() {
+      const w1st = document.getElementById('bcW1st').value.trim(), w2nd = document.getElementById('bcW2nd').value.trim(), w3rd = document.getElementById('bcW3rd').value.trim();
+      if (!w1st || !w2nd || !w3rd) return alert("Mo'attoota 3n galchaa!");
+      const res = await fetch(WEB_APP_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "adminBroadcastResults", pin: CURRENT_PIN, w1st, w2nd, w3rd }) });
+      const d = await res.json();
+      if (d.ok) { alert("Ergameera! ✅"); document.getElementById('broadcastModal').style.display = 'none'; }
+    }
+
+    function exportToCSV() {
+      if (ALL_ORDERS.length === 0) return;
+      let csv = "ID,Guyyaa,Maqaa,Bilbila,Email,Baayina,Carraawwan,Mallaqa,Mala,TXN ID,Status\n";
+      ALL_ORDERS.forEach(o => { csv += `"${o.id}","${o.date}","${o.name}","${o.phone}","${o.email}",${o.qty},"${o.tickets}",${o.total},"${o.method}","${o.txn}","${o.status}"\n`; });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+      link.download = `CarraaBiiftuu_Orders_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+    }
+  </script>
+</body>
+</html>

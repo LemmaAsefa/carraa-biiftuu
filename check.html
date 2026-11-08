@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="om">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haala Ajajaa Sakatta'i - Carraa Biiftuu</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root { --bg: radial-gradient(circle at top, #0a3d24 0%, #03140b 100%); --card: rgba(13, 26, 19, 0.96); --gold: #d4af37; --text: #f0f7f2; --muted: #9eb8aa; }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); padding: 20px 12px; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: var(--card); width: 100%; max-width: 480px; padding: 24px 18px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); border: 1.5px solid var(--gold); }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(212,175,55,0.25); }
+    .lang-sel { background: #091710; border: 1px solid var(--gold); color: var(--gold); padding: 6px 12px; border-radius: 14px; font-weight: bold; font-size: 12px; cursor: pointer; }
+    h2 { color: var(--gold); text-align: center; font-size: 21px; margin-bottom: 6px; }
+    .sub { text-align: center; color: var(--muted); font-size: 12.5px; margin-bottom: 16px; }
+    label { font-weight: 700; margin-top: 12px; display: block; color: var(--text); font-size: 13px; }
+    input { width: 100%; padding: 12px 14px; margin-top: 6px; border-radius: 10px; border: 1px solid #1f3d2b; background: #091710; color: #fff; font-size: 14.5px; outline: none; }
+    input:focus { border-color: var(--gold); }
+    .btn-main { width: 100%; padding: 13px; margin-top: 18px; border-radius: 10px; background: linear-gradient(135deg, #ffd700, #d4af37); color: #000; border: none; font-weight: 900; font-size: 14.5px; cursor: pointer; text-transform: uppercase; }
+    .result-box { margin-top: 20px; padding: 16px; border-radius: 14px; display: none; line-height: 1.65; font-size: 13.5px; }
+    .pending { background: rgba(255, 152, 0, 0.15); color: #ffd54f; border: 1.5px solid #ff9800; }
+    .approved { background: rgba(46, 213, 115, 0.12); color: #fff; border: 2px solid #2ed573; }
+    .rejected { background: rgba(231, 76, 60, 0.15); color: #ffcdd2; border: 1.5px solid #e74c3c; }
+    .e-ticket { background: linear-gradient(135deg, #092317 0%, #03140c 100%); border: 2px solid var(--gold); border-radius: 14px; padding: 16px; margin-top: 12px; color: #fff; }
+    .tkt-num { font-size: 24px; font-weight: 900; color: #ffd700; text-align: center; padding: 8px; background: rgba(212,175,55,0.12); border: 1px solid var(--gold); border-radius: 8px; margin: 10px 0; }
+    .support-row { display: flex; gap: 8px; margin-top: 12px; }
+    .sup-btn { flex: 1; padding: 9px; border-radius: 8px; text-align: center; font-weight: 800; font-size: 12px; text-decoration: none; background: var(--gold); color: #000; }
+    .back-link { display: block; text-align: center; margin-top: 18px; color: var(--gold); text-decoration: none; font-size: 13.5px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="top-bar">
+      <span style="font-weight:900; color:var(--gold); font-size:14px;">🌟 CARRAA BIIFTUU</span>
+      <select class="lang-sel" id="langSel" onchange="setLang(this.value)">
+        <option value="om">🌍 Afaan Oromoo</option>
+        <option value="am">🌍 አማርኛ</option>
+        <option value="en">🌍 English</option>
+      </select>
+    </div>
+
+    <h2 id="titleTxt">🔍 Haala Ajajaa Sakatta'i</h2>
+    <p class="sub" id="subTxt">Lakk. bilbilaa fi Transaction ID galchuun tikkeetii keessan hordofaa ykn buufadhaa.</p>
+    
+    <form onsubmit="event.preventDefault(); checkOrder();">
+      <label id="lblPhone">Lakk. Bilbilaa (Fkn: 09... ykn +2519...):</label>
+      <input type="text" id="phone" required placeholder="09XXXXXXXX">
+
+      <label id="lblTxn">Transaction ID (Lakk. Kaffaltii):</label>
+      <input type="text" id="txn" required placeholder="Fkn: FT26... ykn TX...">
+
+      <button type="submit" class="btn-main" id="searchBtn">SAKATTA'I 🔍</button>
+    </form>
+
+    <div id="resultBox" class="result-box"></div>
+    <a href="index.html" class="back-link" id="backLink">← Gara Fuula Duraatti Deebi'i</a>
+  </div>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxrJMFYrybfQVMW8cWTN7r9uY8NtAKxsRg0BMYZPjwYGd0syqijTVvrG8xHB643oDz6/exec";
+    let curLang = localStorage.getItem("carraa_lang") || "om";
+
+    const DICT = {
+      om: {
+        title: "🔍 Haala Ajajaa Sakatta'i", sub: "Lakk. bilbilaa fi Transaction ID galchuun tikkeetii keessan hordofaa ykn buufadhaa.",
+        phone: "Lakk. Bilbilaa (Fkn: 09... ykn +2519...):", txn: "Transaction ID (Lakk. Kaffaltii):", btn: "SAKATTA'I 🔍", loading: "Barbaadaa jira...",
+        back: "← Gara Fuula Duraatti Deebi'i", pend: "Eeggachaa Jira (Pending) ⏳", app: "Mirkanaa'eera (Approved) ✅", rej: "Kufaa Ta'eera (Rejected) ❌",
+        dlBtn: "📥 TIKKEETII BILBILATTI BUUFADHU", notFound: "Ajajni hin argamne! Lakk. bilbilaa fi TXN ID sirrii galchuu keessan mirkaneessaa.",
+        supMsg: "Gargaarsaaf Customer Support qunnamaa:"
+      },
+      am: {
+        title: "🔍 የትኬትዎን ሁኔታ ይከታተሉ", sub: "ስልክ ቁጥር እና Transaction ID በማስገባት ትኬትዎን ያረጋግጡ ወይም ያውርዱ።",
+        phone: "ስልክ ቁጥር (ምሳሌ፡ 09... ወይም +2519...):", txn: "የትራንዛክሽን ቁጥር (Transaction ID):", btn: "ፈልግ 🔍", loading: "በመፈለግ ላይ...",
+        back: "← ወደ መጀመሪያው ገጽ ተመለስ", pend: "በመጠባበቅ ላይ (Pending) ⏳", app: "ተረጋግጧል (Approved) ✅", rej: "ውድቅ ተደርጓል (Rejected) ❌",
+        dlBtn: "📥 ትኬቱን ወደ ስልክዎ ያውርዱ", notFound: "ትዕዛዙ አልተገኘም! እባክዎ ስልክ ቁጥርና Transaction ID በትክክል ማስገባትዎን ያረጋግጡ።",
+        supMsg: "ለእርዳታ የደንበኞች አገልግሎትን ያነጋግሩ:"
+      },
+      en: {
+        title: "🔍 Check Order & Download Ticket", sub: "Enter your phone number and Transaction ID to verify status or download your E-Ticket.",
+        phone: "Phone Number (e.g. 09... or +2519...):", txn: "Transaction ID (Payment Ref):", btn: "VERIFY STATUS 🔍", loading: "Searching...",
+        back: "← Back to Home Page", pend: "Pending Verification ⏳", app: "Approved & Verified ✅", rej: "Rejected ❌",
+        dlBtn: "📥 DOWNLOAD OFFICIAL E-TICKET", notFound: "Order not found! Please check your phone number and Transaction ID.",
+        supMsg: "Need help? Contact Customer Support:"
+      }
+    };
+
+    function setLang(l) {
+      curLang = l;
+      localStorage.setItem("carraa_lang", l);
+      document.getElementById('langSel').value = l;
+      const t = DICT[l] || DICT.om;
+      document.getElementById('titleTxt').innerText = t.title;
+      document.getElementById('subTxt').innerText = t.sub;
+      document.getElementById('lblPhone').innerText = t.phone;
+      document.getElementById('lblTxn').innerText = t.txn;
+      document.getElementById('searchBtn').innerText = t.btn;
+      document.getElementById('backLink').innerText = t.back;
+    }
+    setLang(curLang);
+
+    async function checkOrder() {
+      const phone = document.getElementById('phone').value.trim();
+      const txn = document.getElementById('txn').value.trim();
+      const btn = document.getElementById('searchBtn');
+      const box = document.getElementById('resultBox');
+      const t = DICT[curLang] || DICT.om;
+
+      btn.disabled = true;
+      btn.innerText = t.loading;
+      box.style.display = "none";
+
+      try {
+        const url = `${WEB_APP_URL}?action=checkOrder&phone=${encodeURIComponent(phone)}&txn=${encodeURIComponent(txn)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        box.style.display = "block";
+        if (data.ok && data.order) {
+          const o = data.order;
+          let sClass = "pending", sTxt = t.pend;
+          if (o.status === "Approved") { sClass = "approved"; sTxt = t.app; }
+          else if (o.status === "Rejected") { sClass = "rejected"; sTxt = t.rej; }
+
+          box.className = "result-box " + sClass;
+          box.innerHTML = `
+            <div class="e-ticket" id="printableTicket">
+              <div style="display:flex; justify-content:space-between; border-bottom:1px dashed var(--gold); padding-bottom:8px; margin-bottom:8px;">
+                <b style="color:#ffd700;">CARRAA BIIFTUU 🌟</b>
+                <span style="font-size:11px; background:var(--gold); color:#000; padding:2px 8px; border-radius:8px; font-weight:900;">${o.status.toUpperCase()}</span>
+              </div>
+              <div>👤 <b>Name:</b> ${o.name}</div>
+              <div>📞 <b>Phone:</b> ${o.phone}</div>
+              <div>🆔 <b>Order ID:</b> <code>${o.id}</code></div>
+              <div class="tkt-num">#${o.tickets}</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                <div>💰 <b>${Number(o.total).toLocaleString()} ETB</b><br><small style="color:#aaa;">${o.date}</small></div>
+                <img src="https://quickchart.io/qr?text=ORDER:${encodeURIComponent(o.id)}&size=80&dark=0a3d24" width="68" height="68" style="background:#fff; padding:3px; border-radius:6px;">
+              </div>
+            </div>
+            <div style="margin-top:10px; text-align:center; font-weight:bold;">${sTxt}</div>
+            ${o.status === "Approved" ? `<button type="button" class="btn-main" style="margin-top:10px;" onclick="dlTicket('${o.id}')">${t.dlBtn}</button>` : ''}
+            <div style="margin-top:12px; font-size:12px; text-align:center;">${t.supMsg}</div>
+            <div class="support-row">
+              <a href="tel:+251909506573" class="sup-btn">📞 +251 909 506 573</a>
+              <a href="https://t.me/CarraaBiiftuu" target="_blank" class="sup-btn" style="background:#229ED9; color:#fff;">✈️ Telegram</a>
+            </div>
+          `;
+        } else {
+          box.className = "result-box rejected";
+          box.innerHTML = `<b>❌ ${data.error || t.notFound}</b><div class="support-row"><a href="tel:+251909506573" class="sup-btn">📞 Call Support</a><a href="https://t.me/CarraaBiiftuu" target="_blank" class="sup-btn" style="background:#229ED9; color:#fff;">✈️ Telegram</a></div>`;
+        }
+      } catch(e) {
+        box.style.display = "block";
+        box.className = "result-box rejected";
+        box.innerText = "Network Error. Please try again!";
+      }
+      btn.disabled = false;
+      btn.innerText = t.btn;
+    }
+
+    function dlTicket(id) {
+      const el = document.getElementById('printableTicket');
+      html2canvas(el, { scale: 2.5, useCORS: true, backgroundColor: "#06180f" }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `CarraaBiiftuu_Ticket_${id}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+  </script>
+</body>
+</html>

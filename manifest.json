@@ -1,0 +1,21 @@
+{
+  "name": "Carraa Biiftuu",
+  "short_name": "CarraaBiiftuu",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#03140b",
+  "theme_color": "#0a3d24",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://quickchart.io/qr?text=CarraaBiiftuu&size=192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://quickchart.io/qr?text=CarraaBiiftuu&size=512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

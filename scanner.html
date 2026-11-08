@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="om">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Admin QR Scanner - Carraa Biiftuu</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: radial-gradient(circle at top, #0a3d24 0%, #03140b 100%); color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 16px 12px; }
+    .header-area { text-align: center; margin-bottom: 14px; }
+    h1 { color: #ffd700; font-size: 20px; text-transform: uppercase; letter-spacing: 1px; }
+    .sub-head { color: #a0b8ac; font-size: 12px; margin-top: 4px; }
+    #authOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.94); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .auth-box { background: #0d2417; border: 2px solid #d4af37; padding: 25px; border-radius: 16px; text-align: center; width: 90%; max-width: 330px; }
+    .auth-box input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #d4af37; border-radius: 8px; background: #05140b; color: #fff; font-size: 22px; text-align: center; letter-spacing: 6px; }
+    .btn-auth { width: 100%; padding: 12px; background: linear-gradient(135deg, #ffd700, #d4af37); color: #000; border: none; border-radius: 8px; font-weight: 900; font-size: 15px; cursor: pointer; }
+    .scanner-wrapper { width: 100%; max-width: 400px; background: rgba(10, 35, 22, 0.92); border: 2px solid #d4af37; border-radius: 18px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+    #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; min-height: 240px; }
+    .controls-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .btn-cam { flex: 1; padding: 11px; border-radius: 8px; font-size: 12.5px; font-weight: 800; border: none; cursor: pointer; text-align: center; }
+    .btn-start { background: #2ed573; color: #000; }
+    .btn-stop { background: #e74c3c; color: #fff; display: none; }
+    .btn-file { background: rgba(212,175,55,0.2); border: 1px solid #d4af37; color: #ffd700; width: 100%; margin-top: 8px; }
+    #resultModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.88); display: none; align-items: center; justify-content: center; z-index: 200; padding: 15px; }
+    .result-card { background: #0d2417; border-radius: 18px; width: 100%; max-width: 380px; padding: 22px 18px; text-align: left; box-shadow: 0 0 40px rgba(0,0,0,0.8); line-height: 1.6; font-size: 13.5px; }
+    .status-valid { border: 2.5px solid #2ed573; }
+    .status-invalid { border: 2.5px solid #e74c3c; }
+    .result-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 900; margin-bottom: 12px; }
+    .badge-valid { background: #2ed573; color: #000; }
+    .badge-invalid { background: #e74c3c; color: #fff; }
+    .ticket-num-big { font-size: 24px; font-weight: 900; color: #ffd700; margin: 8px 0; }
+    .btn-next-scan { width: 100%; margin-top: 16px; padding: 12px; border-radius: 8px; border: none; background: linear-gradient(135deg, #ffd700, #d4af37); color: #000; font-weight: 900; font-size: 14px; cursor: pointer; }
+    .back-link { margin-top: 18px; color: #d4af37; text-decoration: none; font-size: 13px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <!-- Secure Server-Verified PIN Modal (No Hardcoded PIN in Source Code!) -->
+  <div id="authOverlay">
+    <div class="auth-box">
+      <h3 style="color:#ffd700; margin-bottom:6px;">🔐 Seensa Admin</h3>
+      <p style="color:#a0b8ac; font-size:12px;">Maaloo Admin PIN galchaa:</p>
+      <input type="password" id="adminPin" placeholder="••••" maxlength="10">
+      <button class="btn-auth" id="authBtn" onclick="verifyPinSecure()">SEENSA ➔</button>
+      <div id="authErr" style="color:#ff4d4f; font-size:12px; margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <div class="header-area">
+    <h1>📷 Tikkeetii Mirkaneessi (QR Scanner)</h1>
+    <div class="sub-head">Kaameraan ykn Suuraa Tikkeetii Gallery keessaa filachuun mirkaneessaa</div>
+  </div>
+
+  <div class="scanner-wrapper">
+    <div id="reader"></div>
+    <div class="controls-row">
+      <button id="btnStartScan" class="btn-cam btn-start" onclick="startScanner()">▶ Kaameraa Bani</button>
+      <button id="btnStopScan" class="btn-cam btn-stop" onclick="stopScanner()">⏹ Kaameraa Cufi</button>
+    </div>
+    <label class="btn-cam btn-file" style="display:block; cursor:pointer;">
+      📁 Suuraa QR Gallery Keessaa Filadhu
+      <input type="file" id="qrFileInput" accept="image/*" style="display:none;" onchange="scanImageFile(this)">
+    </label>
+  </div>
+
+  <a href="admin.html" class="back-link">← Gara Admin Dashboard Deebi'i</a>
+
+  <div id="resultModal">
+    <div class="result-card status-valid" id="modalCard">
+      <div id="modalBadgeArea"></div>
+      <h3 id="modalHeading" style="margin-bottom:8px;">Ragaa Tikkeetii</h3>
+      <div style="border-top:1px dashed rgba(212,175,55,0.4); border-bottom:1px dashed rgba(212,175,55,0.4); padding:10px 0; margin:10px 0;">
+        <div>👤 <b>Maqaa:</b> <span id="mName">---</span></div>
+        <div>📞 <b>Bilbila:</b> <span id="mPhone">---</span></div>
+        <div>🆔 <b>Order ID:</b> <code id="mOrderId">---</code></div>
+        <div>💰 <b>Mallaqa:</b> <span id="mTotal">---</span> ETB</div>
+        <div class="ticket-num-big" id="mTickets">#---</div>
+        <div>📅 <b>Guyyaa:</b> <span id="mDate">---</span></div>
+      </div>
+      <button class="btn-next-scan" onclick="closeResultModal()">TIKKEETII BIRAA SCAN GODHI 📷</button>
+    </div>
+  </div>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxrJMFYrybfQVMW8cWTN7r9uY8NtAKxsRg0BMYZPjwYGd0syqijTVvrG8xHB643oDz6/exec";
+    let CURRENT_PIN = sessionStorage.getItem("carraa_admin_pin") || "";
+    let html5QrCode = null;
+    let isScanning = false;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(success) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.type = success ? 'sine' : 'sawtooth';
+      osc.frequency.setValueAtTime(success ? 880 : 220, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+    }
+
+    if (CURRENT_PIN) {
+      document.getElementById('authOverlay').style.display = 'none';
+      startScanner();
+    }
+
+    async function verifyPinSecure() {
+      const pin = document.getElementById('adminPin').value.trim();
+      if (!pin) return;
+      const btn = document.getElementById('authBtn');
+      btn.disabled = true; btn.innerText = "Mirkaneessaa jira...";
+      try {
+        const res = await fetch(`${WEB_APP_URL}?action=adminData&pin=${encodeURIComponent(pin)}`);
+        const data = await res.json();
+        if (data.ok) {
+          CURRENT_PIN = pin;
+          sessionStorage.setItem("carraa_admin_pin", pin);
+          document.getElementById('authOverlay').style.display = 'none';
+          startScanner();
+        } else {
+          document.getElementById('authErr').innerText = data.error || "PIN dogoggora!";
+        }
+      } catch(e) {
+        document.getElementById('authErr').innerText = "Network error!";
+      }
+      btn.disabled = false; btn.innerText = "SEENSA ➔";
+    }
+
+    function startScanner() {
+      if (isScanning) return;
+      if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 240, height: 240 } }, onScanSuccess, () => {})
+        .then(() => {
+          isScanning = true;
+          document.getElementById('btnStartScan').style.display = 'none';
+          document.getElementById('btnStopScan').style.display = 'inline-block';
+        }).catch(() => {});
+    }
+
+    function stopScanner() {
+      if (!isScanning || !html5QrCode) return;
+      html5QrCode.stop().then(() => {
+        isScanning = false;
+        document.getElementById('btnStartScan').style.display = 'inline-block';
+        document.getElementById('btnStopScan').style.display = 'none';
+      });
+    }
+
+    function scanImageFile(input) {
+      if (!input.files || !input.files[0]) return;
+      if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+      if (isScanning) stopScanner();
+      html5QrCode.scanFile(input.files[0], true)
+        .then(decodedText => onScanSuccess(decodedText))
+        .catch(() => showInvalidResult("Suuraa kana keessaa QR Code dubbisuun hin danda'amne!"));
+    }
+
+    async function onScanSuccess(decodedText) {
+      if (isScanning) stopScanner();
+      playBeep(true);
+      let orderId = "";
+      if (decodedText.startsWith("ORDER:")) orderId = decodedText.replace("ORDER:", "").trim();
+      else if (decodedText.includes("orderId=")) orderId = new URL(decodedText).searchParams.get("orderId") || "";
+      else { const m = decodedText.match(/[a-f0-9]{8}/i); if (m) orderId = m[0]; }
+
+      if (!orderId) return showInvalidResult("QR Code kun kan Carraa Biiftuu miti!");
+
+      try {
+        const res = await fetch(`${WEB_APP_URL}?action=verifyOrderById&orderId=${encodeURIComponent(orderId)}`);
+        const data = await res.json();
+        if (data.ok && data.order) showValidResult(data.order);
+        else showInvalidResult(data.error || "Tikkeetiin kun galmee keessatti hin argamne!");
+      } catch(e) { showInvalidResult("Dogoggora Network."); }
+    }
+
+    function showValidResult(order) {
+      const card = document.getElementById('modalCard');
+      const badgeArea = document.getElementById('modalBadgeArea');
+      card.className = "result-card status-valid";
+      badgeArea.innerHTML = order.status === "Approved"
+        ? `<span class="result-badge badge-valid">✓ TIKKEETII DHUGAA (APPROVED)</span>`
+        : `<span class="result-badge badge-invalid" style="background:#ff9800;">⏳ TIKEETII EEGGATU (${order.status})</span>`;
+      document.getElementById('mName').innerText = order.name;
+      document.getElementById('mPhone').innerText = order.phone || "-";
+      document.getElementById('mOrderId').innerText = order.id;
+      document.getElementById('mTotal').innerText = Number(order.total).toLocaleString();
+      document.getElementById('mTickets').innerText = "Carraa: #" + order.tickets;
+      document.getElementById('mDate').innerText = order.date;
+      document.getElementById('resultModal').style.display = 'flex';
+    }
+
+    function showInvalidResult(msg) {
+      playBeep(false);
+      document.getElementById('modalCard').className = "result-card status-invalid";
+      document.getElementById('modalBadgeArea').innerHTML = `<span class="result-badge badge-invalid">✕ TIKKEETII SOBAA (INVALID)</span>`;
+      document.getElementById('mName').innerText = "Hin beekamu";
+      document.getElementById('mPhone').innerText = "N/A";
+      document.getElementById('mOrderId').innerText = "INVALID";
+      document.getElementById('mTotal').innerText = "0";
+      document.getElementById('mTickets').innerText = msg;
+      document.getElementById('mDate').innerText = new Date().toLocaleTimeString();
+      document.getElementById('resultModal').style.display = 'flex';
+    }
+
+    function closeResultModal() {
+      document.getElementById('resultModal').style.display = 'none';
+      startScanner();
+    }
+  </script>
+</body>
+</html>
